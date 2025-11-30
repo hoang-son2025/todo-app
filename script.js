@@ -3,7 +3,7 @@ const todoInput = document.getElementById("todoInput");
 const todoList = document.getElementById("todoList");
 const pagination = document.getElementById("pagination");
 
-const todos = []; // Array to store tasks
+const todos = []; // { text: string, finished: boolean }
 const itemsPerPage = 3; // Number of tasks per page
 let currentPage = 1;
 
@@ -15,7 +15,7 @@ addBtn.addEventListener("click", () => {
     return;
   }
 
-  todos.unshift(task); // Add the task to the beginning of the array
+  todos.unshift({ text: task, finished: false }); // Add the task object
   todoInput.value = "";
   currentPage = 1; // Reset to the first page to show the new task
   renderTodos();
@@ -31,13 +31,16 @@ function renderTodos() {
   const currentTodos = todos.slice(start, end);
 
   // Render tasks
-  currentTodos.forEach((task, index) => {
+  currentTodos.forEach((taskObj, index) => {
     const li = document.createElement("li");
     li.className = "todo-item";
 
     const taskText = document.createElement("span");
     taskText.className = "todo-text";
-    taskText.textContent = task;
+    taskText.textContent = taskObj.text;
+    if (taskObj.finished) {
+      taskText.classList.add("finished");
+    }
 
     const editBtn = document.createElement("button");
     editBtn.className = "edit-btn";
@@ -46,6 +49,11 @@ function renderTodos() {
       editTask(start + index, li, taskText)
     );
 
+    const finishBtn = document.createElement("button");
+    finishBtn.className = "finish-btn";
+    finishBtn.textContent = "Finish";
+    finishBtn.addEventListener("click", () => toggleFinish(start + index));
+
     const deleteBtn = document.createElement("button");
     deleteBtn.className = "delete-btn";
     deleteBtn.textContent = "Delete";
@@ -53,6 +61,7 @@ function renderTodos() {
 
     li.appendChild(taskText);
     li.appendChild(editBtn);
+    li.appendChild(finishBtn);
     li.appendChild(deleteBtn);
     todoList.appendChild(li);
   });
@@ -82,7 +91,7 @@ function editTask(index, li, taskText) {
   // Create an input field for editing
   const input = document.createElement("input");
   input.type = "text";
-  input.value = todos[index];
+  input.value = todos[index].text;
   input.className = "todo-text";
 
   // Create a save button
@@ -91,7 +100,7 @@ function editTask(index, li, taskText) {
   saveBtn.className = "save-btn";
   saveBtn.textContent = "Save";
   deleteBtn.className = "delete-btn";
-  deleteBtn.textContent = "delete";
+  deleteBtn.textContent = "Delete";
 
   // Replace the task text and edit button with the input and save button
   li.innerHTML = "";
@@ -102,11 +111,15 @@ function editTask(index, li, taskText) {
   saveBtn.addEventListener("click", () => {
     const updatedTask = input.value.trim();
     if (updatedTask !== "") {
-      todos[index] = updatedTask;
+      todos[index].text = updatedTask;
       renderTodos();
     } else {
       showErrorMessage("Task cannot be empty.");
     }
+  });
+
+  deleteBtn.addEventListener("click", () => {
+    deleteTask(index);
   });
 }
 
@@ -117,6 +130,11 @@ function deleteTask(index) {
   }
   renderTodos();
   renderPagination();
+}
+
+function toggleFinish(index) {
+  todos[index].finished = !todos[index].finished;
+  renderTodos();
 }
 
 function showErrorMessage(message) {
