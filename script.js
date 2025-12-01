@@ -3,9 +3,22 @@ const todoInput = document.getElementById("todoInput");
 const todoList = document.getElementById("todoList");
 const pagination = document.getElementById("pagination");
 
-const todos = []; // { text: string, finished: boolean }
+// 追加: グローバルアクションボタン
+const finishSelectedBtn = document.getElementById("finishSelectedBtn");
+const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+const actionRow = document.querySelector(".action-row");
+
+const todos = []; // { text: string, finished: boolean, selected: boolean }
 const itemsPerPage = 3; // Number of tasks per page
 let currentPage = 1;
+
+function updateActionButtonsState() {
+  const anySelected = todos.some((t) => t.selected);
+  finishSelectedBtn.disabled = !anySelected;
+  deleteSelectedBtn.disabled = !anySelected;
+  // タスクが1個以上ある場合のみアクション行を表示
+  actionRow.style.display = todos.length > 0 ? "flex" : "none";
+}
 
 // Add Task
 addBtn.addEventListener("click", () => {
@@ -15,11 +28,39 @@ addBtn.addEventListener("click", () => {
     return;
   }
 
-  todos.unshift({ text: task, finished: false }); // Add the task object
+  todos.unshift({ text: task, finished: false, selected: false });
   todoInput.value = "";
-  currentPage = 1; // Reset to the first page to show the new task
+  currentPage = 1;
   renderTodos();
   renderPagination();
+  updateActionButtonsState();
+});
+
+// グローバル操作: 選択タスクを完了にする
+finishSelectedBtn.addEventListener("click", () => {
+  // 完了フラグを立てつつ、選択状態は必ず維持する（チェックを外さない）
+  todos.forEach((t) => {
+    if (t.selected) {
+      t.finished = true;
+      t.selected = true; // 念のため明示的に保持
+    }
+  });
+  renderTodos();
+  renderPagination();
+  updateActionButtonsState();
+});
+
+// グローバル操作: 選択タスクを削除
+deleteSelectedBtn.addEventListener("click", () => {
+  for (let i = todos.length - 1; i >= 0; i--) {
+    if (todos[i].selected) todos.splice(i, 1);
+  }
+  if ((currentPage - 1) * itemsPerPage >= todos.length) {
+    currentPage = Math.max(currentPage - 1, 1);
+  }
+  renderTodos();
+  renderPagination();
+  updateActionButtonsState();
 });
 
 function renderTodos() {
@@ -35,6 +76,16 @@ function renderTodos() {
     const li = document.createElement("li");
     li.className = "todo-item";
 
+    // checkbox（タスク左側）
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "select-checkbox";
+    checkbox.checked = !!taskObj.selected;
+    checkbox.addEventListener("change", () => {
+      todos[start + index].selected = checkbox.checked;
+      updateActionButtonsState();
+    });
+
     const taskText = document.createElement("span");
     taskText.className = "todo-text";
     taskText.textContent = taskObj.text;
@@ -49,22 +100,14 @@ function renderTodos() {
       editTask(start + index, li, taskText)
     );
 
-    const finishBtn = document.createElement("button");
-    finishBtn.className = "finish-btn";
-    finishBtn.textContent = "Finish";
-    finishBtn.addEventListener("click", () => toggleFinish(start + index));
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.className = "delete-btn";
-    deleteBtn.textContent = "Delete";
-    deleteBtn.addEventListener("click", () => deleteTask(start + index));
-
+    // per-item の Finish/Delete ボタンは表示しない（グローバル操作のみ）
+    li.appendChild(checkbox);
     li.appendChild(taskText);
     li.appendChild(editBtn);
-    li.appendChild(finishBtn);
-    li.appendChild(deleteBtn);
     todoList.appendChild(li);
   });
+
+  updateActionButtonsState();
 }
 
 function renderPagination() {
@@ -94,19 +137,28 @@ function editTask(index, li, taskText) {
   input.value = todos[index].text;
   input.className = "todo-text";
 
-  // Create a save button
+  // Create only a save button (no Delete/Cancel button)
   const saveBtn = document.createElement("button");
-  const deleteBtn = document.createElement("button");
   saveBtn.className = "save-btn";
   saveBtn.textContent = "Save";
-  deleteBtn.className = "delete-btn";
-  deleteBtn.textContent = "Delete";
 
-  // Replace the task text and edit button with the input and save button
+  // Replace the task list item contents with the input and save button
   li.innerHTML = "";
   li.appendChild(input);
   li.appendChild(saveBtn);
-  li.appendChild(deleteBtn);
+
+  // focus and allow Enter/Escape handling
+  input.focus();
+  input.select();
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      saveBtn.click();
+    } else if (e.key === "Escape") {
+      // Cancel edit
+      renderTodos();
+    }
+  });
 
   saveBtn.addEventListener("click", () => {
     const updatedTask = input.value.trim();
@@ -117,10 +169,6 @@ function editTask(index, li, taskText) {
       showErrorMessage("Task cannot be empty.");
     }
   });
-
-  deleteBtn.addEventListener("click", () => {
-    deleteTask(index);
-  });
 }
 
 function deleteTask(index) {
@@ -130,6 +178,7 @@ function deleteTask(index) {
   }
   renderTodos();
   renderPagination();
+  updateActionButtonsState();
 }
 
 function toggleFinish(index) {
@@ -145,3 +194,8 @@ function showErrorMessage(message) {
     errorMessage.style.display = "none";
   }, 3000);
 }
+
+// 初期表示を更新（タスクが無ければ Finish/Delete を非表示にする）
+updateActionButtonsState();
+renderTodos();
+renderPagination();
