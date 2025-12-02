@@ -237,7 +237,27 @@ h1 {
 /* 小画面でボタンを横並びにしづらいときは縦積みにする */
 @media (max-width: 420px) {
   .action-row {
-    flex-direction: column;
+    flex-direction: row; /* 縦並び → 横並び */
+    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ボタンを左右に広げる（等間隔） */
+  .action-row .finish-btn,
+  .action-row .delete-btn {
+    flex: 1 1 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin: 0;
+  }
+
+  /* ボタン間の余白を確保（左右が詰まりすぎないように） */
+  .action-row .finish-btn {
+    margin-right: 6px;
+  }
+  .action-row .delete-btn {
+    margin-left: 6px;
   }
 }
 
