@@ -4,17 +4,20 @@ jobs:
       - image: 'cimg/python:3.8'
     steps:
       - checkout
-      - run: "echo \"\U0001F527 Building the application...\""
+      - run: "echo \"🔧 Building the application...\""
+
   test:
     docker:
       - image: 'cimg/python:3.8'
     steps:
-      - run: "echo \"\U0001F9EA Running tests...\""
+      - run: "echo \"🧪 Running tests...\""
+
   deploy:
     docker:
       - image: 'cimg/python:3.8'
     steps:
-      - run: "echo \"\U0001F680 Deploying the application...\""
+      - run: "echo \"🚀 Deploying the application...\""
+
 workflows:
   version: 2
   build-test-deploy:
@@ -23,6 +26,10 @@ workflows:
       - test:
           requires:
             - build
-      - deploy:
+      - hold:            # 👈 手動承認ジョブ
+          type: approval
           requires:
             - test
+      - deploy:
+          requires:
+            - hold
